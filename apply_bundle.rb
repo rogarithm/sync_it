@@ -37,20 +37,39 @@ dir_lst.each do |dir|
     refs = %x[git bundle list-heads #{bundle_file}].strip
     puts "Bundle contains:\n#{refs}"
 
-    # main 브랜치가 있는지 확인하고 pull
-    # bundle에서 tag를 가져올 수 있다면 tag 정보도 같이 적용해줘야 한다
-    if refs.include?('refs/heads/main')
-      puts "Pulling from bundle..."
-      %x[git pull #{bundle_file} refs/heads/main:main]
-
-      if $?.success?
-        puts "Successfully applied bundle"
-        puts "Repository updated\n\n"
-      else
-        puts "ERROR: Failed to apply bundle"
-      end
-    else
+    # main 브랜치가 있는지 확인
+    if not refs.include?('refs/heads/main')
       puts "WARNING: Bundle does not contain refs/heads/main"
+      next
+    end
+
+    puts "Fetching from bundle..."
+    # fetch를 사용하여 브랜치와 태그를 모두 가져옴
+    %x[git fetch #{bundle_file} refs/heads/main:refs/remotes/bundle/main]
+
+    if not $?.success?
+      puts "ERROR: Failed to fetch from bundle"
+      next
+    end
+
+    puts "Merging changes..."
+    %x[git merge refs/remotes/bundle/main]
+
+    if $?.success?
+      puts "Successfully merged bundle changes"
+    else
+      puts "ERROR: Failed to merge bundle"
+      next
+    end
+
+    puts "Fetching tags from bundle..."
+    %x[git fetch #{bundle_file} 'refs/tags/*:refs/tags/*']
+
+    if $?.success?
+      puts "Successfully fetched tags"
+      puts "Repository updated\n\n"
+    else
+      puts "WARNING: Failed to fetch tags"
     end
   end
 end

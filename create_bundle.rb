@@ -38,9 +38,9 @@ dir_lst.each do |dir|
       range = "#{last_sync}..HEAD"
     end
 
-    # 번들 생성
+    # 번들 생성 (태그 포함)
     puts "Creating bundle: #{bundle_file}"
-    %x[git bundle create #{bundle_file} #{range}]
+    %x[git bundle create #{bundle_file} #{range} #{sync_tag}]
 
     if not $?.success?
       puts "ERROR: Failed to create bundle"
