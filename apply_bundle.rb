@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-dir_lst = %w[moderation_parent/moderation moderation_parent/dataset moderation_parent/req_results notes sync_it]
+dir_lst = %w[moderation_parent/moderation moderation_parent/dataset moderation_parent/req_results notes]
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'office' : 'home'
 BUNDLE_DIR = 'bundle_root'
@@ -38,16 +38,17 @@ dir_lst.each do |dir|
     puts "Bundle contains:\n#{refs}"
 
     # main 브랜치가 있는지 확인하고 pull
+    # bundle에서 tag를 가져올 수 있다면 tag 정보도 같이 적용해줘야 한다
     if refs.include?('refs/heads/main')
       puts "Pulling from bundle..."
-      # %x[git pull ../../sync_it/#{bundle_file} refs/heads/main:main]
-      #
-      # if $?.success?
-      #   puts "Successfully applied bundle"
-      #   puts "Repository updated\n\n"
-      # else
-      #   puts "ERROR: Failed to apply bundle"
-      # end
+      %x[git pull #{bundle_file} refs/heads/main:main]
+
+      if $?.success?
+        puts "Successfully applied bundle"
+        puts "Repository updated\n\n"
+      else
+        puts "ERROR: Failed to apply bundle"
+      end
     else
       puts "WARNING: Bundle does not contain refs/heads/main"
     end
