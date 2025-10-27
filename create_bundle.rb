@@ -2,7 +2,7 @@
 
 dir_lst = %w[moderation_parent/moderation moderation_parent/dataset moderation_parent/req_results notes sync_it]
 
-TARGET_MACHINE = ENV['TARGET_MACHINE']
+BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'home' : 'office'
 BUNDLE_DIR = 'bundle_root'
 
 dir_lst.each do |dir|
@@ -10,20 +10,21 @@ dir_lst.each do |dir|
     puts "Processing repository: #{dir}"
 
     # 동기화 태그 이름
-    sync_tag = "sync/#{TARGET_MACHINE}"
+    sync_tag = "bundled_at/#{BUNDLED_AT}"
 
     # 마지막 동기화 지점 확인
     last_sync = %x[git rev-parse #{sync_tag} 2>/dev/null].strip
+    last_sync = nil unless $?.success?
 
     # 번들 파일 경로
     bundle_path = File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
-    bundle_file = File.join(bundle_path, "#{TARGET_MACHINE}.bundle")
+    bundle_file = File.join(bundle_path, "#{BUNDLED_AT}.bundle")
 
     # 번들 디렉토리 생성
     %x[mkdir -p #{bundle_path}] if not Dir.exist?(bundle_path)
 
     # 번들 생성 범위 결정
-    if last_sync.empty?
+    if last_sync.nil?
       puts "First sync - creating bundle with all commits"
       range = "--all"
     else
