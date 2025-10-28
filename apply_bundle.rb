@@ -8,68 +8,66 @@ BUNDLE_DIR = 'bundle_root'
 dir_lst.each do |dir|
   # 대상 디렉토리로 이동
   Dir.chdir(File.join('..', dir)) do
-    puts "Current directory: #{Dir.pwd}"
+    puts "At #{Dir.pwd}"
 
     # 번들 파일 경로
-    bundle_path = File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
-    bundle_file = File.join(bundle_path, "#{BUNDLED_AT}.bundle")
+    bundle_path = File.join(File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir), "#{BUNDLED_AT}.bundle")
 
-    if not File.exist?(bundle_file)
-      puts "Bundle file not found: #{bundle_file}"
+    if not File.exist?(bundle_path)
+      puts "ERROR: Bundle file not found: #{bundle_path}"
       next
     end
 
-    puts "Processing repository: #{dir}"
-    puts "Bundle file: #{bundle_file}"
+    puts " Processing repository: #{dir}"
 
     # 번들 검증
-    puts "Verifying bundle..."
-    %x[git bundle verify #{bundle_file}]
+    print " Verifying bundle... "
+    %x[git bundle verify #{bundle_path}]
 
     if not $?.success?
-      puts "ERROR: Bundle verification failed"
+      puts "failed!"
       next
     end
-
-    puts "Bundle is valid"
+    puts "ok!"
 
     # 번들에서 어떤 브랜치가 있는지 확인
-    refs = %x[git bundle list-heads #{bundle_file}].strip
-    puts "Bundle contains:\n#{refs}"
+    refs = %x[git bundle list-heads #{bundle_path}].strip
+    print " Checking bundle have main branch... "
 
     # main 브랜치가 있는지 확인
     if not refs.include?('refs/heads/main')
-      puts "WARNING: Bundle does not contain refs/heads/main"
+      puts "failed!"
       next
     end
+    puts "ok!"
 
-    puts "Fetching from bundle..."
+    print " Fetching from bundle... "
     # fetch를 사용하여 브랜치와 태그를 모두 가져옴
-    %x[git fetch #{bundle_file} refs/heads/main:refs/remotes/bundle/main]
+    %x[git fetch #{bundle_path} refs/heads/main:refs/remotes/bundle/main]
 
     if not $?.success?
-      puts "ERROR: Failed to fetch from bundle"
+      puts "failed!"
       next
     end
+    puts "ok!"
 
-    puts "Merging changes..."
+    print " Merging changes... "
     %x[git merge refs/remotes/bundle/main]
 
     if $?.success?
-      puts "Successfully merged bundle changes"
+      puts "ok!"
     else
-      puts "ERROR: Failed to merge bundle"
+      puts "failed!"
       next
     end
 
-    puts "Fetching tags from bundle..."
-    %x[git fetch #{bundle_file} 'refs/tags/*:refs/tags/*']
+    print " Fetching tags from bundle... "
+    %x[git fetch #{bundle_path} 'refs/tags/*:refs/tags/*']
 
     if $?.success?
-      puts "Successfully fetched tags"
-      puts "Repository updated\n\n"
+      puts "ok!"
     else
-      puts "WARNING: Failed to fetch tags"
+      puts "failed!"
     end
   end
 end
