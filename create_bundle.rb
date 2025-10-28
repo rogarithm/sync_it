@@ -35,7 +35,7 @@ dir_lst.each do |dir|
         puts "No new commits since last sync"
         next
       end
-      range = "#{last_sync}..HEAD"
+      range = "#{last_sync}..main"
     end
 
     # 번들 생성 (태그 포함)
