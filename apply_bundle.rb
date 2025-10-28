@@ -51,7 +51,13 @@ dir_lst.each do |dir|
     end
     puts "ok!"
 
-    print " Merging changes... "
+    cmts = %x[git log --oneline ..refs/remotes/bundle/main].strip.split("\n")
+    if cmts.empty?
+      print " Merging changes... "
+    else
+      new_cm, old_cm = cmts.first, cmts.last
+      print " Merging changes... #{old_cm}..#{new_cm} "
+    end
     %x[git merge refs/remotes/bundle/main]
 
     if $?.success?
