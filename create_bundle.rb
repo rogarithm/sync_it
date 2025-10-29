@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-dir_lst = %w[moderation_parent/moderation moderation_parent/dataset moderation_parent/req_results notes]
+dir_lst = File.read(File.join('repo_paths')).strip.split("\n")
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'home' : 'office'
 BUNDLE_DIR = 'bundle_root'
