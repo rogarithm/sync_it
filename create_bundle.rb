@@ -1,26 +1,48 @@
 #!/usr/bin/env ruby
+require 'time'
 
 dir_lst = File.read(File.join('repo_paths')).strip.split("\n")
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'home' : 'office'
 BUNDLE_DIR = 'bundle_root'
 
+def get_next_version(location)
+  tag_prefix = "bundled_at/#{location}/"
+  today = Time.now.strftime('%y.%m.%d')
+  base_version = "v.#{today}"
+
+  # 오늘 날짜로 시작하는 태그 찾기
+  tags = %x[git tag -l "#{tag_prefix}#{base_version}*"].lines.map(&:strip)
+
+  if tags.empty?
+    base_version
+  else
+    # 가장 높은 번호 찾기
+    max_num = tags.map { |t|
+      if t.match(/#{Regexp.escape(base_version)}\.(\d+)$/)
+        $1.to_i
+      else
+        0
+      end
+    }.max
+
+    "#{base_version}.#{max_num + 1}"
+  end
+end
+
 dir_lst.each do |dir|
   Dir.chdir(File.join('..', dir)) do
     puts "Processing repository: #{dir}"
 
-    # 동기화 태그 이름
-    sync_tag = "bundled_at/#{BUNDLED_AT}"
+    # 태그 프리픽스
+    tag_prefix = "bundled_at/#{BUNDLED_AT}/"
 
-    # 마지막 동기화 지점 확인
-    last_sync = %x[git rev-parse #{sync_tag} 2>/dev/null].strip
-    last_sync = nil unless $?.success?
+    # 마지막 동기화 태그 찾기
+    last_tag = %x[git tag -l "#{tag_prefix}v.*" --sort=-version:refname].lines.first&.strip
+    last_sync = last_tag ? %x[git rev-parse #{last_tag}].strip : nil
 
     # 번들 파일 경로
     bundle_path = File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
-    bundle_file = File.join(bundle_path, "#{BUNDLED_AT}.bundle")
-
-    # 번들 디렉토리 생성
     %x[mkdir -p #{bundle_path}] if not Dir.exist?(bundle_path)
 
     # 번들 생성 범위 결정
@@ -28,22 +50,29 @@ dir_lst.each do |dir|
       puts "First sync - creating bundle with all commits"
       range = "--all"
     else
-      puts "Last sync tag: #{last_sync}"
+      puts "Last sync tag: #{last_tag}"
       # 새로운 커밋이 있는지 확인
       current_head = %x[git rev-parse HEAD].strip
       if current_head == last_sync
         puts "No new commits since last sync"
         next
       end
-      range = "#{last_sync}..main"
+      range = "#{last_sync}..HEAD"
     end
+
+    # 새 버전 생성
+    new_version = get_next_version(BUNDLED_AT)
+    new_tag = "#{tag_prefix}#{new_version}"
+    bundle_file = File.join(bundle_path, "#{BUNDLED_AT}_#{new_version}.bundle")
 
     # 번들 생성
     puts "Creating bundle: #{bundle_file}"
     if last_sync.nil?
       %x[git bundle create #{bundle_file} #{range}]
     else
-      %x[git bundle create #{bundle_file} #{range} #{sync_tag}]
+      # 이전 태그들도 포함
+      prev_tags = %x[git tag -l "#{tag_prefix}v.*"].lines.map(&:strip).join(' ')
+      %x[git bundle create #{bundle_file} #{range} #{prev_tags}]
     end
 
     if not $?.success?
@@ -51,14 +80,30 @@ dir_lst.each do |dir|
       next
     end
 
-    # 동기화 태그 업데이트
-    %x[git tag -f #{sync_tag} HEAD]
+    # 커밋 목록 생성
+    if last_sync
+      commits = %x[git log --oneline #{last_sync}..HEAD].strip
+    else
+      commits = %x[git log --oneline].strip
+    end
+
+    # 태그 메시지 생성
+    timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+    tag_message = <<~MSG
+      Bundle created at: #{timestamp}
+
+      Commits included:
+      #{commits}
+    MSG
+
+    # 어노테이션 태그 생성
+    %x[git tag -a #{new_tag} -m "#{tag_message}" HEAD]
 
     if $?.success?
-      puts "Updated sync tag: #{sync_tag} -> HEAD"
+      puts "Created sync tag: #{new_tag}"
       puts "Bundle created successfully\n\n"
     else
-      puts "ERROR: Failed to update sync tag"
+      puts "ERROR: Failed to create sync tag"
     end
   end
 end
