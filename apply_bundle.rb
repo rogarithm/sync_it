@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require 'date'
+
 dir_lst = File.read(File.join('repo_paths')).strip.split("\n")
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'office' : 'home'
@@ -11,7 +13,14 @@ dir_lst.each do |dir|
     puts "At #{Dir.pwd}"
 
     # 번들 파일 경로
-    bundle_path = File.join(File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir), "#{BUNDLED_AT}.bundle")
+    bundle_dir = File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
+    bundle_filename = Dir.entries(bundle_dir).filter { |entry|
+      entry.end_with?('.bundle')
+    }.sort_by { |bundle|
+      bs = bundle.split('.')
+      Date.parse("20#{bs[1]}-#{bs[2]}-#{bs[3]}")
+    }.reverse.first
+    bundle_path = File.join(bundle_dir, bundle_filename) if bundle_filename
 
     if not File.exist?(bundle_path)
       puts "ERROR: Bundle file not found: #{bundle_path}"
