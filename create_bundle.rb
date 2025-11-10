@@ -65,22 +65,7 @@ dir_lst.each do |dir|
     new_tag = "#{tag_prefix}#{new_version}"
     bundle_file = File.join(bundle_path, "#{BUNDLED_AT}_#{new_version}.bundle")
 
-    # 번들 생성
-    puts "Creating bundle: #{bundle_file}"
-    if last_sync.nil?
-      %x[git bundle create #{bundle_file} #{range}]
-    else
-      # 이전 태그들도 포함
-      prev_tags = %x[git tag -l "#{tag_prefix}v.*"].lines.map(&:strip).join(' ')
-      %x[git bundle create #{bundle_file} #{range} #{prev_tags}]
-    end
-
-    if not $?.success?
-      puts "ERROR: Failed to create bundle"
-      next
-    end
-
-    # 커밋 목록 생성
+    # 커밋 목록 생성 (태그 메시지용)
     if last_sync
       commits = %x[git log --oneline #{last_sync}..HEAD].strip
     else
@@ -96,14 +81,29 @@ dir_lst.each do |dir|
       #{commits}
     MSG
 
-    # 어노테이션 태그 생성
+    # 어노테이션 태그 먼저 생성
     %x[git tag -a #{new_tag} -m "#{tag_message}" HEAD]
 
+    if not $?.success?
+      puts "ERROR: Failed to create sync tag"
+      next
+    end
+    puts "Created sync tag: #{new_tag}"
+
+    # 번들 생성 (태그를 포함)
+    puts "Creating bundle: #{bundle_file}"
+    if last_sync.nil?
+      %x[git bundle create #{bundle_file} #{range} #{new_tag}]
+    else
+      # 이전 태그들과 새 태그 포함
+      prev_tags = %x[git tag -l "#{tag_prefix}v.*"].lines.map(&:strip).join(' ')
+      %x[git bundle create #{bundle_file} #{range} #{prev_tags}]
+    end
+
     if $?.success?
-      puts "Created sync tag: #{new_tag}"
       puts "Bundle created successfully\n\n"
     else
-      puts "ERROR: Failed to create sync tag"
+      puts "ERROR: Failed to create bundle"
     end
   end
 end

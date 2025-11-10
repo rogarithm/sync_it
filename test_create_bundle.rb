@@ -42,6 +42,30 @@ class TestCreateBundle < Minitest::Test
     end
   end
 
+  def test_bundle_includes_tags
+    bundle_file = File.join(@test_dir, 'test.bundle')
+    target_dir = File.join(@test_dir, 'target_repo')
+    tag_name = "bundled_at/office/v.25.01.01"
+
+    # Source repo에서 태그 생성 후 bundle 만들기
+    Dir.chdir(@repo_dir) do
+      system("git tag -a #{tag_name} -m 'Test tag'")
+      system("git bundle create #{bundle_file} --all #{tag_name}")
+    end
+
+    # Target repo 생성 및 bundle fetch
+    Dir.mkdir(target_dir)
+    Dir.chdir(target_dir) do
+      system('git init -q')
+      system('git config user.email "test@example.com"')
+      system('git config user.name "Test User"')
+      system("git fetch #{bundle_file} 'refs/tags/*:refs/tags/*' 2>/dev/null")
+
+      tags = `git tag -l`.strip.split("\n")
+      assert_includes tags, tag_name, "Bundle should include the tag"
+    end
+  end
+
   private
 
   def get_next_version(location)
