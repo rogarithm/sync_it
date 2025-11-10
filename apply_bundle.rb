@@ -51,8 +51,8 @@ dir_lst.each do |dir|
     puts "ok!"
 
     print " Fetching from bundle... "
-    # fetch를 사용하여 브랜치와 태그를 모두 가져옴
-    %x[git fetch #{bundle_path} refs/heads/main:refs/remotes/bundle/main]
+    # fetch를 사용하여 브랜치만 가져옴 (태그는 나중에 별도로 가져옴)
+    %x[git fetch --no-tags #{bundle_path} refs/heads/main:refs/remotes/bundle/main]
 
     if not $?.success?
       puts "failed!"
@@ -77,12 +77,27 @@ dir_lst.each do |dir|
     end
 
     print " Fetching tags from bundle... "
-    %x[git fetch #{bundle_path} 'refs/tags/*:refs/tags/*']
+    # bundled_at/office와 bundled_at/home 태그를 제외하고 가져옴
+    all_tags = %x[git bundle list-heads #{bundle_path}].strip.split("\n")
+      .map { |line| line.split(/\s+/, 2)[1] }
+      .compact
+      .uniq
+      .select { |ref| ref.start_with?('refs/tags/') }
+      .reject { |ref| ref == 'refs/tags/bundled_at/office' || ref == 'refs/tags/bundled_at/home' }
 
-    if $?.success?
-      puts "ok!"
+    if all_tags.empty?
+      puts "no tags to fetch!"
     else
-      puts "failed!"
+      fetch_result = all_tags.map { |tag|
+        result = system("git fetch --no-tags #{bundle_path} '#{tag}:#{tag}' 2>&1 > /dev/null")
+        result
+      }.all?
+
+      if fetch_result
+        puts "ok!"
+      else
+        puts "failed!"
+      end
     end
   end
 end
