@@ -14,6 +14,6 @@ class PathLoader
   end
 
   def bundle_dir dir
-    File.join(root_dir + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
+    File.join('..' + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
   end
 end

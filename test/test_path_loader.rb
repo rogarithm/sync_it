@@ -24,7 +24,7 @@ class TestPathLoader < Minitest::Test
     assert_equal pl.bundle_dir('notes'), '../bundle_root/notes'
 
     pl = PathLoader.new('repo_paths', '/tmp')
-    assert_equal pl.bundle_dir('moderation_parent/moderation'), '/tmp/../bundle_root/moderation_parent/moderation'
-    assert_equal pl.bundle_dir('notes'), '/tmp/bundle_root/notes'
+    assert_equal pl.bundle_dir('moderation_parent/moderation'), '../../bundle_root/moderation_parent/moderation'
+    assert_equal pl.bundle_dir('notes'), '../bundle_root/notes'
   end
 end
