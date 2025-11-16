@@ -1,8 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'date'
+require_relative 'lib/path_loader'
 
-dir_lst = File.read(File.join('repo_paths')).strip.split("\n")
+dir_lst = PathLoader.new('repo_paths').load
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'office' : 'home'
 BUNDLE_DIR = 'bundle_root'
