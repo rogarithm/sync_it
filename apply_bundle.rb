@@ -7,7 +7,6 @@ pl = PathLoader.new('repo_paths')
 dir_lst = pl.load
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'office' : 'home'
-BUNDLE_DIR = 'bundle_root'
 
 dir_lst.each do |dir|
   # 대상 디렉토리로 이동
@@ -15,7 +14,7 @@ dir_lst.each do |dir|
     puts "At #{Dir.pwd}"
 
     # 번들 파일 경로
-    bundle_dir = File.join(pl.root_dir + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
+    bundle_dir = pl.bundle_dir(dir)
     bundle_filename = Dir.entries(bundle_dir).filter { |entry|
       entry.end_with?('.bundle')
     }.sort_by { |bundle|

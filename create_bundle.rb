@@ -5,7 +5,6 @@ pl = PathLoader.new('repo_paths')
 dir_lst = pl.load
 
 BUNDLED_AT = %x[git config user.email].strip == 'sehoongim@gmail.com' ? 'home' : 'office'
-BUNDLE_DIR = 'bundle_root'
 
 def get_next_version(location)
   tag_prefix = "bundled_at/#{location}/"
@@ -43,7 +42,7 @@ dir_lst.each do |dir|
     last_sync = last_tag ? %x[git rev-parse #{last_tag}].strip : nil
 
     # 번들 파일 경로
-    bundle_path = File.join(pl.root_dir + '/..' * (dir.split('/').size - 1), BUNDLE_DIR, dir)
+    bundle_path = pl.bundle_dir(dir)
     %x[mkdir -p #{bundle_path}] if not Dir.exist?(bundle_path)
 
     # 번들 생성 범위 결정
