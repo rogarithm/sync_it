@@ -1,8 +1,9 @@
 class PathLoader
-  attr_accessor :path
+  attr_accessor :path, :root_dir
 
-  def initialize path
+  def initialize path, root_dir = '..'
     @path = path
+    @root_dir = root_dir
   end
 
   def load
